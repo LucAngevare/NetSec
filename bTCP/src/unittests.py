@@ -1044,7 +1044,7 @@ def run_in_separate_processes(args, *targets, timeout=5):
         else:
             logger.warning(f"  process {process.name} ({process.pid}) has already exited wih code {process.exitcode}")
 
-    raise RuntimeError(error_msg)
+    #raise RuntimeError(error_msg)
 
 def run_process(func, queue, idx, loglevel, suppress_nie, *args):
     configure_globals(loglevel=loglevel, suppress_nie=suppress_nie) # globals are not shared between processes

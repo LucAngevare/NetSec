@@ -128,7 +128,7 @@ class BTCPClientSocket(BTCPSocket):
         lossy_layer_segment_received or lossy_layer_tick.
         """
         logger.debug("lossy_layer_tick called")
-        raise_NotImplementedError("Only rudimentary implementation of lossy_layer_tick present. Read the comments & code of client_socket.py, then remove the NotImplementedError.")
+        #raise_NotImplementedError("Only rudimentary implementation of lossy_layer_tick present. Read the comments & code of client_socket.py, then remove the NotImplementedError.")
 
         # Actually send all chunks available for sending.
         # Relies on an eventual exception to break from the loop when no data
@@ -195,7 +195,7 @@ class BTCPClientSocket(BTCPSocket):
         this project.
         """
         logger.debug("connect called")
-        raise_NotImplementedError("No implementation of connect present. Read the comments & code of client_socket.py.")
+        #raise_NotImplementedError("No implementation of connect present. Read the comments & code of client_socket.py.")
 
 
     def send(self, data):
@@ -230,7 +230,7 @@ class BTCPClientSocket(BTCPSocket):
         done later.
         """
         logger.debug("send called")
-        raise_NotImplementedError("Only rudimentary implementation of send present. Read the comments & code of client_socket.py, then remove the NotImplementedError.")
+        #raise_NotImplementedError("Only rudimentary implementation of send present. Read the comments & code of client_socket.py, then remove the NotImplementedError.")
 
         # Example with a finite buffer: a queue with at most 1000 chunks,
         # for a maximum of 985KiB data buffered to get turned into packets.
@@ -273,7 +273,7 @@ class BTCPClientSocket(BTCPSocket):
         #
         # This, of course, needs to be replaced with a proper connection 
         # termination handshake.
-        raise_NotImplementedError("No implementation of shutdown present. Read the comments & code of client_socket.py.")
+        #raise_NotImplementedError("No implementation of shutdown present. Read the comments & code of client_socket.py.")
 
 
     def close(self):

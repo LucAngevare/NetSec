@@ -118,7 +118,7 @@ class BTCPServerSocket(BTCPSocket):
         """
         logger.debug("lossy_layer_segment_received called")
         logger.debug(segment)
-        raise_NotImplementedError("Only rudimentary implementation of lossy_layer_segment_received present. Read the comments & code of server_socket.py, then remove the NotImplementedError.")
+        #raise_NotImplementedError("Only rudimentary implementation of lossy_layer_segment_received present. Read the comments & code of server_socket.py, then remove the NotImplementedError.")
 
         match self._state:
             case BTCPStates.CLOSED:
@@ -205,7 +205,7 @@ class BTCPServerSocket(BTCPSocket):
         logger.debug("lossy_layer_tick called")
         self._start_example_timer()
         self._expire_timers()
-        raise_NotImplementedError("No implementation of lossy_layer_tick present. Read the comments & code of server_socket.py.")
+        #raise_NotImplementedError("No implementation of lossy_layer_tick present. Read the comments & code of server_socket.py.")
 
 
     # The following two functions show you how you could implement a (fairly
@@ -271,7 +271,7 @@ class BTCPServerSocket(BTCPSocket):
         this project.
         """
         logger.debug("accept called")
-        raise_NotImplementedError("No implementation of accept present. Read the comments & code of server_socket.py.")
+        #raise_NotImplementedError("No implementation of accept present. Read the comments & code of server_socket.py.")
 
 
     def recv(self):
@@ -305,7 +305,7 @@ class BTCPServerSocket(BTCPSocket):
         *empty* response signals a disconnect.
         """
         logger.debug("recv called")
-        raise_NotImplementedError("Only rudimentary implementation of recv present. Read the comments & code of server_socket.py, then remove the NotImplementedError.")
+        #raise_NotImplementedError("Only rudimentary implementation of recv present. Read the comments & code of server_socket.py, then remove the NotImplementedError.")
 
         # Rudimentary example implementation:
         # Empty the queue in a loop, reading into a larger bytearray object.
