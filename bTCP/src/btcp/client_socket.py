@@ -2,6 +2,7 @@ from btcp.btcp_socket import BTCPSocket, BTCPStates, raise_NotImplementedError
 from btcp.lossy_layer import LossyLayer
 from btcp.constants import *
 
+import threading
 import queue
 import logging
 import random
@@ -100,7 +101,98 @@ class BTCPClientSocket(BTCPSocket):
         function for each state.
         """
         logger.debug("lossy_layer_segment_received called")
-        raise_NotImplementedError("No implementation of lossy_layer_segment_received present. Read the comments & code of client_socket.py.")
+        # raise_NotImplementedError("No implementation of lossy_layer_segment_received present. Read the comments & code of client_socket.py.")
+        if not BTCPSocket.verify_checksum(segment):
+            logger.warning("Checksum failed - ignoring segment")
+            return  # Discard corrupted segment
+        
+        seqnum, acknum, syn, ack, fin, window, length, checksum = BTCPSocket.unpack_segment_header(segment)
+        payload = segment[10:10+length] if length > 0 else b''
+
+        if self._state == BTCPStates.SYN_SENT:
+            # Client sent SYN, waiting for SYN-ACK
+            logger.debug("client sent SYN, waiting for SYN-ACK")
+            if syn and ack and not fin:
+                logger.info("Received SYN-ACK, completing handshake")
+
+                expected_ack = (self._seqnum + 1) & 0xFFFF
+                if acknum != expected_ack:
+                    logger.warning(f"Invalid ACK: expected {expected_ack}, got {acknum}")
+                    return
+                
+                peer_next = (seqnum+1) & 0xFFFF
+                ack_wo_cksum = self.build_segment_header(seqnum=expected_ack, acknum=peer_next, syn_set=False, ack_set=True, fin_set=False, window=self._window, length=0, checksum=0)
+                ack_cksum = self.in_cksum(ack_wo_cksum)
+                ack_seg = self.build_segment_header(seqnum=expected_ack, acknum=peer_next, syn_set=False, ack_set=True, fin_set=False, window=self._window, length=0, checksum=ack_cksum)
+                self._lossy_layer.send_segment(ack_seg)
+
+                self._seqnum = expected_ack
+                self._state = BTCPStates.ESTABLISHED
+                logger.info("Handshake complete, moved to ESTABLISHED")
+
+            
+        elif self._state == BTCPStates.SYN_RCVD:
+            # This is for server side, client shouldn't be here
+            logger.warning("Client in SYN_RCVD? Unexpected")
+
+        elif self._state == BTCPStates.FIN_SENT:
+            # Client sent FIN, waiting for FIN-ACK
+            logger.debug("Client sent FIN, waiting for FIN-ACK")
+            fin_acked = False
+            if ack:
+                expected = (self._fin_seq+1) & 0xFFFF
+                if acknum == expected: fin_acked = True
+            else:
+                logger.warning(f"invalid ACK in FIN_SENT: expected {expected}, got {acknum}")
+
+            if fin:
+                peer_fin_next = (seqnum+1) & 0xFFFF
+                ack_hdr_wo_cksum = self.build_segment_header(
+                    self._seqnum, peer_fin_next,
+                    syn_set=False, ack_set=True, fin_set=False,
+                    window=self._window, length=0, checksum=0
+                )
+                ack_cksum = self.in_cksum(ack_hdr_wo_cksum)
+                ack_hdr = self.build_segment_header(
+                    self._seqnum, peer_fin_next,
+                    syn_set=False, ack_set=True, fin_set=False,
+                    window=self._window, length=0, checksum=ack_cksum
+                )
+                self._lossy_layer.send_segment(ack_hdr)
+                logger.info("Sent final ACK for peer FIN")
+
+                # If our FIN was ACKed too, we are done
+                if fin_acked or ack:
+                    self._state = BTCPStates.CLOSED
+                    logger.info("Connection closed")
+
+            if fin and ack:
+                logger.info("Received FIN-ACK, closing connection")
+
+
+        elif self._state == BTCPStates.FIN_RCVD:
+            # Received FIN from server, waiting to close
+            logger.debug("Received FIN from server, waiting to close")
+            if ack and not fin:
+                logger.info("Received final ACK, closing")
+
+
+        elif self._state == BTCPStates.CLOSING:
+            # Both sides have sent FIN
+            logger.debug("Both sides have sent FIN")
+            if ack:
+                logger.debug("Connection is closing")
+
+
+        elif self._state == BTCPStates.CLOSED:
+            # Unexpected segment in CLOSED state - ignore (old segments)
+            logger.debug("Ignoring segment in CLOSED state")
+            return
+        
+        else:
+            # For data transfer - you need an ESTABLISHED state!
+            # Without it, you can't handle data properly
+            logger.warning(f"Unexpected segment in state {self._state}")
 
 
     def lossy_layer_tick(self):
@@ -128,7 +220,7 @@ class BTCPClientSocket(BTCPSocket):
         lossy_layer_segment_received or lossy_layer_tick.
         """
         logger.debug("lossy_layer_tick called")
-        #raise_NotImplementedError("Only rudimentary implementation of lossy_layer_tick present. Read the comments & code of client_socket.py, then remove the NotImplementedError.")
+        raise_NotImplementedError("Only rudimentary implementation of lossy_layer_tick present. Read the comments & code of client_socket.py, then remove the NotImplementedError.")
 
         # Actually send all chunks available for sending.
         # Relies on an eventual exception to break from the loop when no data
@@ -195,7 +287,7 @@ class BTCPClientSocket(BTCPSocket):
         this project.
         """
         logger.debug("connect called")
-        #raise_NotImplementedError("No implementation of connect present. Read the comments & code of client_socket.py.")
+        raise_NotImplementedError("No implementation of connect present. Read the comments & code of client_socket.py.")
 
 
     def send(self, data):
@@ -230,7 +322,7 @@ class BTCPClientSocket(BTCPSocket):
         done later.
         """
         logger.debug("send called")
-        #raise_NotImplementedError("Only rudimentary implementation of send present. Read the comments & code of client_socket.py, then remove the NotImplementedError.")
+        raise_NotImplementedError("Only rudimentary implementation of send present. Read the comments & code of client_socket.py, then remove the NotImplementedError.")
 
         # Example with a finite buffer: a queue with at most 1000 chunks,
         # for a maximum of 985KiB data buffered to get turned into packets.
@@ -273,7 +365,7 @@ class BTCPClientSocket(BTCPSocket):
         #
         # This, of course, needs to be replaced with a proper connection 
         # termination handshake.
-        #raise_NotImplementedError("No implementation of shutdown present. Read the comments & code of client_socket.py.")
+        raise_NotImplementedError("No implementation of shutdown present. Read the comments & code of client_socket.py.")
 
 
     def close(self):

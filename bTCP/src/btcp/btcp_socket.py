@@ -81,9 +81,21 @@ class BTCPSocket:
         segment, the checksum field in the header should be set to 0x0000, and
         then the resulting checksum should be put in its place.
         """
+        
         logger.debug("in_cksum() called")
-        raise_NotImplementedError("No implementation of in_cksum present. Read the comments & code of btcp_socket.py.")
+        checksum = 0
 
+        seg_copy = bytearray(segment)
+        seg_copy[8] = 0
+        seg_copy[9] = 0
+
+        for i in range(0, len(seg_copy), 2):
+            word = (seg_copy[i] << 8) + seg_copy[i+1]
+            checksum+=word
+            if checksum > 0xFFFF: checksum = (checksum & 0xFFFF)+1
+
+        checksum = (~checksum) & 0xFFFF
+        return checksum
 
     @staticmethod
     def verify_checksum(segment):
@@ -93,8 +105,9 @@ class BTCPSocket:
         that is, be sure to change the "0xABCD" below.
         """
         logger.debug("verify_cksum() called")
-        raise_NotImplementedError("No implementation of in_cksum present. Read the comments & code of btcp_socket.py.")
-        return BTCPSocket.in_cksum(segment) == 0xABCD
+        received = struct.unpack_from("!H", segment, 8)[0]
+        computed = BTCPSocket.in_cksum(segment)
+        return received == computed
 
 
     @staticmethod
@@ -135,8 +148,25 @@ class BTCPSocket:
         than make a separate method for every individual field.
         """
         logger.debug("unpack_segment_header() called")
-        raise_NotImplementedError("No implementation of unpack_segment_header present. Read the comments & code of btcp_socket.py. You should really implement the packing / unpacking of the header into field values before doing anything else!")
-        logger.debug("unpack_segment_header() done")
+        # raise_NotImplementedError("No implementation of unpack_segment_header present. Read the comments & code of btcp_socket.py. You should really implement the packing / unpacking of the header into field values before doing anything else!")
+        """
+        struct.pack("!HHBBHH",
+           seqnum,      # Sequence Number (bytes 0-1)
+           acknum,      # Acknowledgement Number (bytes 2-3)
+           flag_byte,   # Flags (byte 4)
+           window,      # Window (byte 5)
+           length,      # Data Length (bytes 6-7)
+           checksum)    # Checksum (bytes 8-9)
+        """
+        seqnum, acknum, flag_byte, window, length, checksum = struct.unpack("!HHBBHH", header)
+
+        syn_set = (flag_byte >> 2) & 1  # Check bit 2
+        ack_set = (flag_byte >> 1) & 1  # Check bit 1
+        fin_set = flag_byte & 1          # Check bit 0
+
+        logger.debug(f"Unpacked: seq={seqnum}, ack={acknum}, syn_flag={syn_set}, ack_flag={ack_set}, fin_flag={fin_set}, window={window}, len={length}, cksum={checksum}")
+        return seqnum, acknum, syn_set, ack_set, fin_set, window, length, checksum
+        
 
 
 
